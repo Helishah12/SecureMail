@@ -1,4 +1,5 @@
 def evaluate_session(features):
+
     score = 0
     findings = []
 
@@ -14,10 +15,7 @@ def evaluate_session(features):
             "points": points
         })
 
-    # ============================================================
-    # A. TLS / ENCRYPTION
-    # ============================================================
-
+ 
     tls = features.get("tls_version")
 
     if tls == "TLS 1.3":
@@ -57,8 +55,8 @@ def evaluate_session(features):
 
     # STARTTLS offered but failed
     if (
-        features.get("starttls_offered") is True
-        and features.get("starttls_success") is False
+        features.get("starttls_offered")
+        and not features.get("starttls_success")
     ):
         add_finding(
             "STARTTLS_FAILURE",
@@ -67,11 +65,8 @@ def evaluate_session(features):
             30
         )
 
-    # ============================================================
-    # B. CERTIFICATE
-    # ============================================================
 
-    if features.get("cert_expired") is True:
+    if features.get("cert_expired"):
         add_finding(
             "CERT_EXPIRED",
             "HIGH",
@@ -79,7 +74,7 @@ def evaluate_session(features):
             25
         )
 
-    if features.get("cert_not_yet_valid") is True:
+    if features.get("cert_not_yet_valid"):
         add_finding(
             "CERT_NOT_YET_VALID",
             "HIGH",
@@ -87,7 +82,7 @@ def evaluate_session(features):
             20
         )
 
-    if features.get("self_signed") is True:
+    if features.get("self_signed"):
         add_finding(
             "SELF_SIGNED",
             "MEDIUM",
@@ -95,7 +90,7 @@ def evaluate_session(features):
             15
         )
 
-    if features.get("hostname_match") is False:
+    if not features.get("hostname_match"):
         add_finding(
             "HOSTNAME_MISMATCH",
             "HIGH",
@@ -103,14 +98,12 @@ def evaluate_session(features):
             20
         )
 
-    # ============================================================
-    # C. CRYPTOGRAPHIC KEY
-    # ============================================================
 
     key_algorithm = features.get("cert_key_algorithm")
     key_size = features.get("cert_key_size")
 
     if key_algorithm == "RSA":
+
         if key_size is not None and key_size < 2048:
             add_finding(
                 "WEAK_KEY",
@@ -124,13 +117,11 @@ def evaluate_session(features):
     elif key_algorithm == "ECDSA":
         pass
 
-    # ============================================================
-    # D. SIGNATURE ALGORITHM
-    # ============================================================
 
     signature = features.get("cert_signature_algorithm")
 
     if signature is not None:
+
         signature = str(signature).upper()
 
         if "SHA1" in signature or "SHA-1" in signature:
@@ -149,21 +140,14 @@ def evaluate_session(features):
                 10
             )
 
-    # ============================================================
-    # E. FORWARD SECRECY
-    # ============================================================
 
-    if features.get("forward_secrecy") is False:
+    if not features.get("forward_secrecy"):
         add_finding(
             "NO_FORWARD_SECRECY",
             "MEDIUM",
             "Session does not provide forward secrecy",
             10
         )
-
-    # ============================================================
-    # RISK LEVEL
-    # ============================================================
 
     if score >= 70:
         risk_level = "CRITICAL"
