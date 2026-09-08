@@ -850,22 +850,18 @@ def traffic_features(session):
     bytes_sent = 0
     bytes_received = 0
 
-    # Determine client direction using the first SYN when possible.
+    # Determine client direction using the first sender when possible.
     client_ip = None
 
     if "src" in session.columns:
-
         for _, row in session.iterrows():
-
             src = clean(row.get("src"))
 
-            # First sender is normally the client.
             if src:
                 client_ip = src
                 break
 
     for _, row in session.iterrows():
-
         try:
             length = int(float(row.get("tcp_len", 0)))
         except:
@@ -881,55 +877,85 @@ def traffic_features(session):
     retransmissions = 0
 
     if "retrans" in session.columns:
-
         for value in session["retrans"]:
-
             if clean(value):
                 retransmissions += 1
 
+    # Extract packet timestamps while preserving their original indices.
     times = []
 
     if "time" in session.columns:
-
         for value in session["time"]:
-
             try:
                 times.append(float(value))
             except:
-                pass
+                times.append(None)
 
-    if times:
+    valid_times = [
+        t for t in times
+        if t is not None
+    ]
 
-        session_start = min(times)
-        session_end = max(times)
+    # Remove timestamps that are wildly separated from the
+    # normal time range of the session.
+    if valid_times:
+
+        sorted_times = sorted(valid_times)
+        median_time = sorted_times[len(sorted_times) // 2]
+
+        filtered_times = [
+            t
+            for t in valid_times
+            if abs(t - median_time) <= 3600
+        ]
+
+        if filtered_times:
+            session_start = min(filtered_times)
+            session_end = max(filtered_times)
+        else:
+            session_start = None
+            session_end = None
 
     else:
-
+        median_time = None
         session_start = None
         session_end = None
 
-    handshake_duration = None
+    # Calculate TLS handshake duration.
+    # Sessions without a measurable TLS handshake use 0.0,
+    # matching the representation used by the baseline dataset.
+    handshake_duration = 0.0
 
-    if "tls_type" in session.columns and times:
+    if "tls_type" in session.columns and valid_times:
 
         tls_times = []
 
         for i, value in enumerate(session["tls_type"]):
 
-            if clean(value):
+            if not clean(value):
+                continue
 
-                if i < len(times):
-                    tls_times.append(times[i])
+            if i >= len(times):
+                continue
+
+            timestamp = times[i]
+
+            if timestamp is None:
+                continue
+
+            if (
+                median_time is not None
+                and abs(timestamp - median_time) <= 3600
+            ):
+                tls_times.append(timestamp)
 
         if len(tls_times) >= 2:
-
             handshake_duration = round(
                 max(tls_times) - min(tls_times),
                 4
             )
 
         elif len(tls_times) == 1:
-
             handshake_duration = 0.0
 
     return {
@@ -941,7 +967,6 @@ def traffic_features(session):
         "session_start": session_start,
         "session_end": session_end
     }
-
 
 # ============================================================
 # BUILD SESSION

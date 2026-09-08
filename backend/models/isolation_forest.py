@@ -1,37 +1,31 @@
-from sklearn.ensemble import IsolationForest
+import os
+import joblib
 
 
-BEHAVIORAL_FEATURES = [
-    "packet_count",
-    "bytes_sent",
-    "bytes_received",
-    "retransmission_count",
-    "tls_handshake_duration",
-    "session_duration_seconds",
-    "avg_packet_size",
-]
+MODEL_PATH = "data/models/isolation_forest.joblib"
 
 
-def train_isolation_forest(df):
-    X = df[BEHAVIORAL_FEATURES].copy()
+def load_baseline():
+    if not os.path.exists(MODEL_PATH):
+        raise FileNotFoundError(
+            f"Behavioral baseline not found: {MODEL_PATH}"
+        )
 
-    X = X.fillna(X.median())
+    bundle = joblib.load(MODEL_PATH)
 
-    model = IsolationForest(
-        n_estimators=200,
-        contamination="auto",
-        random_state=42
-    )
+    return bundle["model"], bundle["features"]
 
-    model.fit(X)
+
+def predict_anomalies(df):
+    model, features = load_baseline()
+
+    X = df[features].copy()
+
+    predictions = model.predict(X)
+    scores = model.decision_function(X)
 
     result = df.copy()
+    result["anomaly"] = predictions
+    result["anomaly_score"] = scores
 
-    # +1 = normal
-    # -1 = anomalous
-    result["anomaly"] = model.predict(X)
-
-    # Lower / more negative = more anomalous
-    result["anomaly_score"] = model.decision_function(X)
-
-    return model, result
+    return result

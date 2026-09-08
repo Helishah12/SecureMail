@@ -1,6 +1,5 @@
 from backend.analysis.rule_engine import evaluate_session
-from backend.models.isolation_forest import train_isolation_forest
-
+from backend.models.isolation_forest import predict_anomalies
 
 def analyze_sessions(df):
     security_results = []
@@ -24,7 +23,7 @@ def analyze_sessions(df):
         r["findings"] for r in security_results
     ]
 
-    _, behavioral_df = train_isolation_forest(df)
+    behavioral_df = predict_anomalies(df)
 
     result_df["anomaly"] = behavioral_df["anomaly"]
     result_df["anomaly_score"] = behavioral_df["anomaly_score"]
