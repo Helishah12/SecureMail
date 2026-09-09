@@ -4,3 +4,51 @@ __pycache__/
 .vscode/
 .pytest_cache/
 .ipynb_checkpoints/
+
+
+
+
+
+
+
+
+# Dependencies
+frontend/node_modules/
+
+# Production builds
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/out/
+
+# Environment variables
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Vite
+frontend/.vite/
+
+# Testing / coverage
+frontend/coverage/
+
+# Cache
+frontend/.cache/
+frontend/.eslintcache
+frontend/.parcel-cache/
+frontend/.turbo/
+
+# TypeScript
+frontend/*.tsbuildinfo
+
+
+    
+.vscode/
+.idea/
+
+
+.DS_Store
+Thumbs.db
+frontend/.agents/
